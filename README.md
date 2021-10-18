@@ -1,8 +1,9 @@
-# Preenche notas Minha-UFMG
+# Preenche notas Portal-Professor-UFES
 
 Script que preenche as notas automagicamente. Precisa de Selenium + GeckoDriver para funcionar.
 
-Como: 1) sou péssimo em manter consistência e 2) às vezes tenho turmas quebradas, com o script preciso apenas criar uma planilha e "importar" no sistema depois.
+Script baseado em um fork do [preenche-Minha-UFMG](https://github.com/flaviovdf/preenche-notas-ufmg) desenvolvido pelo Prof. Flávio Figueiredo.
+
 
 ## Dependências
 
@@ -12,11 +13,6 @@ Como: 1) sou péssimo em manter consistência e 2) às vezes tenho turmas quebra
 1. [pandas](https://pandas.pydata.org)
 1. [click](https://click.palletsprojects.com)
 
-### Instalando as dependências
-
-```bash
-pip install selenium pandas click
-```
 
 ### Instalando o GeckoDriver no Linux
 
@@ -31,6 +27,13 @@ tar -x geckodriver -zf geckodriver-${LATEST}-linux64.tar.gz -O > /usr/local/bin/
 chmod +x /usr/local/bin/geckodriver
 ```
 
+### Instalando as dependências
+
+```bash
+pip install selenium pandas click
+```
+
+
 ## Como utilizar
 
 Basta rodar:
@@ -42,16 +45,23 @@ python main.py -h
 Para ver as opções. O vídeo abaixo mostra um exemplo de uso.
 
 Sempre mantenha um terminal aberto. O mesmo vai perguntar para você qual é a turma, veja o vídeo abaixo.
+O vídeo é da minha-UFMG mas a sequencia de comandos se aplica para o portal do professor-UFES.
 
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/Z7yhH-4r8YI/0.jpg)](https://www.youtube.com/watch?v=Z7yhH-4r8YI)
 
 
 ## Formato dos Dados
 
-Como entrada, basta passar um csv que contenha um cabeçalho onde as avaliações tem os mesmos códigos do sistema (AV1, ...). Qualquer coluna que não seja `AV#` ou `EE` será ignorada.
-
+Como entrada, basta passar um csv que contenha um cabeçalho com matrícula, nota e falta,separado por ;
 **A ideia aqui é que o: excell, google-sheets, \*-office, todos permitem salvar planilhas como csv**
 
 ```
-Matricula,AV1,AV2,AV3,AV4,EE
+Matricula;nota;falta
 ```
+## Responsabilidades
+
+Use por sua conta e risco. Verifique as notas antes de salvar de enviar definitivamente.
+
+Vale lembrar que qualquer manutenção no portal do professor pode fazer o script quebrar.
+
+Esse script **não tem** garantias de manutenção e nem suporte. Siga as instruções e seja feliz!

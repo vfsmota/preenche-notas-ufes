@@ -7,14 +7,22 @@ import click
 import pandas as pd
 
 
+URL = 'https://professor.ufes.br/'
+NOTAS = URL + 'LancamentoNotas/index.jsp?todas=0&&menu=0'
+
+
 def parse_turmas(form):
     turmas = {}
-    for option in form.find_elements_by_tag_name('option'):
-        if 'Selecione' in option.text:
-            continue
-        turmas[option.text] = option
-    return turmas
+    for option in form.find_elements_by_tag_name('tr'):
+        cols = option.find_elements_by_tag_name('td')
+        if (len(cols) == 3):
+            disc = cols[1].text
+            #print(cols[1].text)
+            link = option.find_elements_by_tag_name('a')
+            #print(link[0].get_attribute('href'))
+            turmas[disc] = link[0].get_attribute('href')
 
+    return turmas
 
 def pega_turma(turmas):
     while True:
@@ -35,31 +43,33 @@ def pega_turma(turmas):
     valor_form = turmas[nome_turma]
     return valor_form
 
-
-URL = 'https://sistemas.ufmg.br/diario/'
-NOTAS = URL + 'notaTurma/notaAvaliacao/solicitar/solicitarNota.do?acao=lancarAvaliacaoCompleta'
-
+def parse_lancarNotas(form):
+    link = form[1].find_elements_by_tag_name('a')
+    #print(link[0].get_attribute('href'))
+    return link[0].get_attribute('href')
 
 @click.command()
 @click.option('--usuario', prompt='Digite seu login')
 @click.option('--senha', prompt='Digite sua senha', hide_input=True)
 @click.argument('arquivo_notas')
+
 def main(usuario, senha, arquivo_notas):
 
-    # Pouco de programacao defensiva
     print('Lendo o arquivo')
     try:
-        # Lendo como string, mais seguro
-        df = pd.read_csv(arquivo_notas, header=0, index_col=None, dtype=str)
+    #     # Lendo como string, mais seguro
+        df = pd.read_csv(arquivo_notas, header=0, index_col=None, dtype=str, sep=';')
         df['Matricula'] = pd.to_numeric(df['Matricula'])
         df = df.set_index('Matricula')
-        df = df.sort_index()
+        #df = df.sort_index()
         df = df.fillna('0')
+        print(df)
     except Exception as e:
         print('Arquivo no formato errado.')
-        print('Preciso de csv com uma coluna Matricula')
-        print('Além de uma coluna por avaliacao estilo minha ufmg AV1,AV2,EE')
+        print('CSV  deve seguir Matricula; Nota; Falta')
         raise e
+
+
 
     # Inicia selenium
     print('Iniciando selenium')
@@ -67,51 +77,51 @@ def main(usuario, senha, arquivo_notas):
     driver.get(URL)
 
     # Logando
-    username = driver.find_element_by_id('j_username')
-    password = driver.find_element_by_id('j_password')
+    #username = driver.find_element_by_name('login')
+    username = driver.find_element_by_xpath("//input[1]")
+    password = driver.find_element_by_name('senha')
 
     username.send_keys(usuario)
     password.send_keys(senha)
-    driver.find_element_by_name('submit').click()
+    driver.find_element_by_xpath("//input[@type='submit']").click()
 
-    # Form de turmas
-    form_turma = driver.find_element_by_name('turma')
-    turmas = parse_turmas(form_turma)
-    escolha_turma = pega_turma(turmas)
-    escolha_turma.click()
-
-    # Vamos para as notas
+    # Vamos para a seleção de turma
     driver.get(NOTAS)
 
-    # Desliga as notificacoes do minha ufmg
-    print('Destivando e-mails')
-    notificacoes = "//input[@type='checkbox' and @checked='checked']"
-    for checkbox in driver.find_elements_by_xpath(notificacoes):
-        checkbox.click()
+    #Pegar as turmas
+    form_turma = driver.find_element_by_id("lista_turmas")
+    turmas = parse_turmas(form_turma)
+    escolha_turma = pega_turma(turmas)
+    #print(escolha_turma)
 
-    # Pega os nomes das provas
-    avaliacoes_header = driver.find_element_by_xpath("//div[@id='notasHead']")
-    avaliacoes = []
-    for avaliacao in avaliacoes_header.find_elements_by_tag_name('a'):
-        avaliacoes.append(avaliacao.text)
+    #Vai para o preenchimento das notas
+    driver.get(escolha_turma)
 
-    print('As avaliacoes sao:')
-    for i in range(len(avaliacoes)):
-        print(avaliacoes[i])
+    lancar = driver.find_elements_by_class_name("NoPrint")
+    link = parse_lancarNotas(lancar)
 
-    # YOLO
-    print('Caso as colunas existam no csv, here we go...')
-    cells = '//input[@class="nota centralizado widthAval"]'
-    cols = set(df.columns)
-    idx_aval = 0
-    for cell in driver.find_elements_by_xpath(cells):
-        cell.click()
-        id_ = cell.get_attribute('id')[1:]
-        matricula, _ = map(int, id_.split('_'))
-        if avaliacoes[idx_aval] in cols and matricula in df.index:
-            nota = df.loc[matricula][avaliacoes[idx_aval]]
-            cell.send_keys(nota.replace('.', ','))
-        idx_aval = (idx_aval + 1) % len(avaliacoes)
+    #Aqui vai lançar as notas propriamente
+    driver.get(link)
+
+    form_notas = driver.find_element_by_id("formulario")
+    for aluno in form_notas.find_elements_by_tag_name('tr'):
+        #print(aluno.text)
+        matric = aluno.find_elements_by_class_name('matricula')
+        if (len(matric) < 1):
+            continue
+
+        #removendo os parenteses da matricula no lançamento
+        matric = matric[0].text[1:-1]
+
+        notas = aluno.find_elements_by_tag_name('input')
+        notaP = notas[1]
+        faltaP = notas[2]
+
+        notaDf = df.loc[int(matric)][0]
+        notaP.send_keys(notaDf)
+        faltaDf = df.loc[int(matric)][1]
+        faltaP.send_keys(faltaDf)
+
 
     print('Antes de fechar o script, ', end='')
     print('verifique tudo e salve as notas no browser.')
