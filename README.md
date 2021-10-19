@@ -65,3 +65,8 @@ Use por sua conta e risco. Verifique as notas antes de salvar de enviar definiti
 Vale lembrar que qualquer manutenção no portal do professor pode fazer o script quebrar.
 
 Esse script **não tem** garantias de manutenção e nem suporte. Siga as instruções e seja feliz!
+
+## Known issues
+
+- Não apresenta mais de uma turma de um mesmo curso. Solução atual: Encerrar o lançamento de notas da turma após preenchimento. @ricardocmello
+- Exception  em caso de aluno na tabela de frequência no portal não constar no CSV. Solução atual: ter todos os alunos no CSV ou terminar o preenchimento manualmente após crash.
